@@ -91,7 +91,9 @@ EOF
 function show_help {
 
 
-    echo -e "\nUsage: $0 -d /usr/src/amdgpu-pro-YOURVERSION [-v 818 -c 13]"
+    echo -e "\nUSAGE:"
+    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 818 -c 13"
+    echo -e "Restore: $0 -d /usr/src/amdgpu-pro-YOURVERSION -r"
     echo "    -v VOLTAGE  : Base voltage in mV as int"
     echo "    -c PERCENTS : Underclock value in percents as int"
 }
@@ -105,7 +107,7 @@ AMDGPUDIR=""
 UVOLT=0 #818 in example
 UCLOCK=0 #13 in example
 
-while getopts "h?d:v:c:" opt; do
+while getopts "h?rd:v:c:" opt; do
     case "$opt" in
 	h|\?) logo; show_help; exit 0 ;;
 	d) AMDGPUDIR=$OPTARG; HELP=0 ;;
@@ -141,8 +143,10 @@ if [[ $RESTORE -eq 0 ]]; then
     if [[ $UVOLT -lt 500  ]]; then warn "Are you shure that it whould work with voltage near ${UVOLT}mV ?"; fi
     if [[ $UVOLT -lt 1  ]];   then  error "Definitely wrong undervold value ${UVOLT}mV"; HELP=1; fi
 
-    if [[ $UCLOCK -gt 90 || $UCLOCK -lt 1 ]]; then error "Can not allow you set underclock at ${UCLOCK}% !"; HELP=1; fi
+    if [[ $UCLOCK -gt 90 || $UCLOCK -lt 0 ]]; then error "Can not allow you set underclock at ${UCLOCK}% !"; HELP=1; fi
     info "Undervolt set to ${UVOLT}mV clock reduce value is ${UCLOCK}%"
+else
+    info "Restore configuration requested"
 fi
 
 #SHOW HELP OF FUCKUP
@@ -163,7 +167,8 @@ if [ ! -d "$APPDIR" ]; then mkdir -p "$APPDIR"; fi
 pcheck=`grep -c "//MOD" ${THEFILE}`
 if [[ $pcheck -gt 0 ]]; then
     if [ ! -f "$BACKUPFILE" ]; then
-        warn "Source file are already modified $THEFILE\nBackup file not found at $BACKUPFILE"
+        error "Source file are already modified $THEFILE\nBackup file not found at $BACKUPFILE"
+	exit 1;
     fi
 else
     info "Backup oririnal file to $BACKUPFILE"
@@ -180,26 +185,29 @@ then
 fi
 
 
-# RESTORE MODE
-if [[ $RESTORE -eq 1 ]]; then
-    #KOFILE="${}/amdgpu.ko.orig"
-    error "RESTORE not available now"
-    exit 1
-fi
-
 #PATCH MODE
 KERNEL=`uname -r`
+
 KOFILE_PTCH="${APPDIR}/amdgpu.ko_${KERNEL}_${UVOLT}_${UCLOCK}"
+if [[ $RESTORE -eq 1 ]]; then
+    KOFILE_PTCH="${APPDIR}/amdgpu.ko_${KERNEL}_orig"
+fi
+
 
 if [ ! -f $KOFILE_PTCH ]; then
     info "BUILDING new amdgpu.ko file"
 
-    PTCH=`produce_patch $UVOLT $UCLOCK`
     cp -f "$BACKUPFILE" "$THEFILE"
-    echo "$PTCH" | patch "$THEFILE"
 
-    if [[ $? -ne 0 ]]; then error "Patching failed with error code: $?"; exit 1; fi
-    info "File patched: $THEFILE"
+    if [[ $RESTORE -eq 0 ]]; then
+        PTCH=`produce_patch $UVOLT $UCLOCK`
+        echo "$PTCH" | patch "$THEFILE"
+
+        if [[ $? -ne 0 ]]; then error "Patching failed with error code: $?"; exit 1; fi
+        info "File patched: $THEFILE"
+    else
+	info "Source restored $THEFILE"
+    fi
     
     ${AMDGPUDIR}/pre-build.sh "$KERNEL"
     make KERNELRELEASE="$KERNEL" -C "/lib/modules/$KERNEL/build" M="$AMDGPUDIR"
