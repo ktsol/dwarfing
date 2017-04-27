@@ -2,21 +2,15 @@
 #
 # Ideas stolen from here :)
 # https://www.phoronix.com/forums/forum/linux-graphics-x-org-drivers/amd-linux/918649-underclocking-undervolting-the-rx-470-with-amdgpu-pro-success
+# Dirver file that should be patched can be found here
+# https://github.com/torvalds/linux/blob/master/drivers/gpu/drm/amd/powerplay/smumgr/polaris10_smc.c
 #
 # This tool modify amd gpu kernel module.
 # It allows you to undervolt and underclock your AMD RX4xx GPUs under linux with amdgpu latest driver.
-# Use at your own risc.
+# Use at your own risk.
 
 
 #COLORS
-#Black        0;30     Dark Gray     1;30
-#Red          0;31     Light Red     1;31
-#Green        0;32     Light Green   1;32
-#Brown/Orange 0;33     Yellow        1;33
-#Blue         0;34     Light Blue    1;34
-#Purple       0;35     Light Purple  1;35
-#Cyan         0;36     Light Cyan    1;36
-#Light Gray   0;37     White         1;37
 CRED='\033[0;31m'
 CYELL='\033[1;33m'
 CGREE='\033[0;32m'
@@ -50,8 +44,8 @@ function error {
 
 function produce_patch {
 TPL=$(cat <<EOF
---- polaris10_smc.c.orid	2017-04-06 14:53:13.768922151 +0300
-+++ polaris10_smc.c	        2017-04-06 17:06:31.804359441 +0300
+--- ./polaris10_smc.c.orig	2017-04-27 12:00:59.492580016 +0300
++++ polaris10_smc.c		2017-04-27 15:27:55.451783666 +0300
 @@ -112,10 +112,15 @@
  			else if (dep_table->entries[i].mvdd)
  				*mvdd = (uint32_t) dep_table->entries[i].mvdd *
@@ -59,7 +53,7 @@ TPL=$(cat <<EOF
  
  			*voltage |= 1 << PHASES_SHIFT;
 +			//MOD UNDERVOLT
-+			//UVT_V*voltage = (*voltage & 0xFFFF0000) + ({uvolt}*VOLTAGE_SCALE) & 0xFFFF;
++			//UVT_V*voltage = (*voltage & 0xFFFF0000) + (({uvolt}*VOLTAGE_SCALE) & 0xFFFF);
 +			//WARNING {uvolt} here must be in (uvolt > 0 && uvolt <= 100)
 +			//UVT_P*voltage -= (((*voltage & 0xFFFF) * {uvolt}) / 100) & 0xFFFF;
 +			//END UNDRVOLT
@@ -68,15 +62,31 @@ TPL=$(cat <<EOF
  	}
  
  	/* sclk is bigger than max sclk in the dependence table */
-@@ -770,10 +773,14 @@
+@@ -134,10 +139,15 @@
+ 	if (SMU7_VOLTAGE_CONTROL_NONE == data->mvdd_control)
+ 		*mvdd = data->vbios_boot_state.mvdd_bootup_value * VOLTAGE_SCALE;
+ 	else if (dep_table->entries[i].mvdd)
+ 		*mvdd = (uint32_t) dep_table->entries[i - 1].mvdd * VOLTAGE_SCALE;
+ 
++	//MOD UNDERVOLT
++	//UVT_V*voltage = (*voltage & 0xFFFF0000) + (({uvolt}*VOLTAGE_SCALE) & 0xFFFF);
++	//WARNING {uvolt} here must be in (uvolt > 0 && uvolt <= 100)
++	//UVT_P*voltage -= (((*voltage & 0xFFFF) * {uvolt}) / 100) & 0xFFFF;
++	//END UNDRVOLT
+ 	return 0;
+ }
+ 
+ static uint16_t scale_fan_gain_settings(uint16_t raw_setting)
+ {
+@@ -770,10 +780,14 @@
  
  	polaris10_get_sclk_range_table(hwmgr, &(smu_data->smc_state_table));
  
  	for (i = 0; i < dpm_table->sclk_table.count; i++) {
  
-+	        //MOD UNDERCLOCK
-+                int clk = dpm_table->sclk_table.dpm_levels[i].value;
-+                dpm_table->sclk_table.dpm_levels[i].value -= (clk * {uclock}) / 100;
++		//MOD UNDERCLOCK
++		int clk = dpm_table->sclk_table.dpm_levels[i].value;
++		dpm_table->sclk_table.dpm_levels[i].value -= (clk * {uclock}) / 100;
 +		//END UNDERCLOCK
  		result = polaris10_populate_single_graphic_level(hwmgr,
  				dpm_table->sclk_table.dpm_levels[i].value,
@@ -87,11 +97,11 @@ EOF
 )
     PATCH=${TPL//"{uvolt}"/$1}
     if [[ $1 -gt 150 ]]; then
-	PATCH=${PATCH/"//UVT_V"/""}
+	PATCH=${PATCH//"//UVT_V"/""}
     else
-	PATCH=${PATCH/"//UVT_P"/""}
+	PATCH=${PATCH//"//UVT_P"/""}
     fi
-    echo "${PATCH/"{uclock}"/$2}"
+    echo "${PATCH//"{uclock}"/$2}"
 }
 
 
