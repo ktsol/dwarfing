@@ -44,7 +44,7 @@ function warn {
 
 
 function error {
-    echo -e "${CBLUE}${1}${NC}"
+    echo -e "${CRED}${1}${NC}"
 }
 
 
@@ -52,14 +52,16 @@ function produce_patch {
 TPL=$(cat <<EOF
 --- polaris10_smc.c.orid	2017-04-06 14:53:13.768922151 +0300
 +++ polaris10_smc.c	        2017-04-06 17:06:31.804359441 +0300
-@@ -112,10 +112,13 @@
+@@ -112,10 +112,15 @@
  			else if (dep_table->entries[i].mvdd)
  				*mvdd = (uint32_t) dep_table->entries[i].mvdd *
  					VOLTAGE_SCALE;
  
  			*voltage |= 1 << PHASES_SHIFT;
 +			//MOD UNDERVOLT
-+			*voltage = (*voltage & 0xFFFF0000) + {uvolt}*VOLTAGE_SCALE;
++			//UVT_V*voltage = (*voltage & 0xFFFF0000) + ({uvolt}*VOLTAGE_SCALE) & 0xFFFF;
++			//WARNING {uvolt} here must be in (uvolt > 0 && uvolt <= 100)
++			//UVT_P*voltage -= (((*voltage & 0xFFFF) * {uvolt}) / 100) & 0xFFFF;
 +			//END UNDRVOLT
  			return 0;
  		}
@@ -74,7 +76,7 @@ TPL=$(cat <<EOF
  
 +	        //MOD UNDERCLOCK
 +                int clk = dpm_table->sclk_table.dpm_levels[i].value;
-+                dpm_table->sclk_table.dpm_levels[i].value -= ({uclock} * clk) / 100;
++                dpm_table->sclk_table.dpm_levels[i].value -= (clk * {uclock}) / 100;
 +		//END UNDERCLOCK
  		result = polaris10_populate_single_graphic_level(hwmgr,
  				dpm_table->sclk_table.dpm_levels[i].value,
@@ -83,7 +85,12 @@ TPL=$(cat <<EOF
  		if (result)
 EOF
 )
-    PATCH=${TPL/"{uvolt}"/$1}
+    PATCH=${TPL//"{uvolt}"/$1}
+    if [[ $1 -gt 150 ]]; then
+	PATCH=${PATCH/"//UVT_V"/""}
+    else
+	PATCH=${PATCH/"//UVT_P"/""}
+    fi
     echo "${PATCH/"{uclock}"/$2}"
 }
 
@@ -92,10 +99,13 @@ function show_help {
 
 
     echo -e "\nUSAGE:"
-    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 818 -c 13"
+    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 818 -c 13 # voltage at 818mV underclock 13%"
+    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 10 -c 5 # downvolt 10% underclock 5%"
     echo -e "Restore: $0 -d /usr/src/amdgpu-pro-YOURVERSION -r"
-    echo "    -v VOLTAGE  : Base voltage in mV as int"
-    echo "    -c PERCENTS : Underclock value in percents as int"
+    echo -e "\nARGUMENTS:"
+    echo "    -d DIRECTORY           : Path to directory with your amdgpu driver files"
+    echo "    -v VOLTAGE or PERCENT  : Base voltage in mV as int or downvolt in percents if value from 0 to 100"
+    echo "    -c PERCENT             : Underclock value in percents"
 }
 
 
@@ -105,15 +115,15 @@ LOGO=1
 RESTORE=0
 AMDGPUDIR=""
 UVOLT=0 #818 in example
-UCLOCK=0 #13 in example
+UCLOCK=0 #0.87 in example
 
 while getopts "h?rd:v:c:" opt; do
     case "$opt" in
 	h|\?) logo; show_help; exit 0 ;;
 	d) AMDGPUDIR=$OPTARG; HELP=0 ;;
 	r) RESTORE=1; HELP=0 ;;
-	v) UVOLT=$(($OPTARG)) ;;
-	c) UCLOCK=$((OPTARG)) ;;
+	v) UVOLT=$((${OPTARG//[!0-9]/})) ;;
+	c) UCLOCK=$((${OPTARG//[!0-9]/})) ;;
     esac
 done
 
@@ -139,17 +149,25 @@ else
 fi
 
 if [[ $RESTORE -eq 0 ]]; then
-    if [[ $UVOLT -gt 1200 ]]; then warn "Undervolt value ${UVOLT}mV does not look like undervolt at all!"; fi
-    if [[ $UVOLT -lt 500  ]]; then warn "Are you shure that it whould work with voltage near ${UVOLT}mV ?"; fi
-    if [[ $UVOLT -lt 1  ]];   then  error "Definitely wrong undervold value ${UVOLT}mV"; HELP=1; fi
 
-    if [[ $UCLOCK -gt 90 || $UCLOCK -lt 0 ]]; then error "Can not allow you set underclock at ${UCLOCK}% !"; HELP=1; fi
-    info "Undervolt set to ${UVOLT}mV clock reduce value is ${UCLOCK}%"
+    USUF="mV"
+    if [[ $UVOLT -gt 100 ]]; then
+	if [[ $UVOLT -gt 1200 ]]; then warn "Undervolt value ${UVOLT}mV does not look like undervolt at all!"; fi
+	if [[ $UVOLT -lt 800  ]]; then warn "Are you shure that it whould work with voltage near ${UVOLT}mV ?"; fi
+	if [[ $UVOLT -lt 500  ]];   then  error "Definitely wrong undervolt value ${UVOLT}mV"; HELP=1; fi
+    else
+	USUF="%"
+	if [[ $UVOLT -lt 0 || $UVOLT -gt 50 ]];   then  error "Can not allow you set undervolt to ${UVOLT}%"; HELP=1; fi
+    fi
+	
+    if [[ $UCLOCK -lt 0 || $UCLOCK -gt 50 ]]; then error "Can not allow you set underclock to ${UCLOCK}% !"; HELP=1; fi
+    
+    info "Undervolt value ${UVOLT}${USUF} underclock is ${UCLOCK}%"
 else
     info "Restore configuration requested"
 fi
 
-#SHOW HELP OF FUCKUP
+#SHOW HELP on FUCKUP
 if [ $HELP -eq 1 ]; then
     show_help
     exit 0
@@ -157,7 +175,7 @@ fi
 
 
 # BEGIN TO WORK
-if [[ $EUID -ne 0 ]]; then # Пользователь не root
+if [[ $EUID -ne 0 ]]; then
     error "No way dude, you have to be a root to do this!"
     exit 1;
 fi
@@ -211,6 +229,7 @@ if [ ! -f $KOFILE_PTCH ]; then
     
     ${AMDGPUDIR}/pre-build.sh "$KERNEL"
     make KERNELRELEASE="$KERNEL" -C "/lib/modules/$KERNEL/build" M="$AMDGPUDIR"
+    if [[ $? -ne 0 ]]; then error "Can not build! Error code: $?"; exit 1; fi
     cp -f "${AMDGPUDIR}/amd/amdgpu/amdgpu.ko" "$KOFILE_PTCH"
 else
     info "amdgpu.ko file already precompiled reusing it $KOFILE_PTCH"
