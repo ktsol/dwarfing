@@ -245,7 +245,6 @@ else
     info "amdgpu.ko file already precompiled reusing it $KOFILE_PTCH"
 fi
 
-find /lib/modules/4.4.0-53-generic -name amdgpu.ko -exec rm -v {} \;
 find "/lib/modules/$KERNEL" -name amdgpu.ko -exec rm -v {} \;
 
 cp -f "$KOFILE_PTCH" "/lib/modules/${KERNEL}/kernel/drivers/gpu/drm/amd/amdgpu/amdgpu.ko"
