@@ -236,7 +236,8 @@ if [ ! -f $KOFILE_PTCH ]; then
     else
 	info "Source restored $THEFILE"
     fi
-    
+
+    cd ${AMDGPUDIR}    
     ${AMDGPUDIR}/pre-build.sh "$KERNEL"
     make KERNELRELEASE="$KERNEL" -C "/lib/modules/$KERNEL/build" M="$AMDGPUDIR"
     if [[ $? -ne 0 ]]; then error "Can not build! Error code: $?"; exit 1; fi
