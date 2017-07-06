@@ -38,7 +38,7 @@ fi
 if [[ $HR_FALL -gt $2 ]]; then
     log "REBOOT ->  HR droped to `read_hr` about $HR_FALL times"
     unmemo
-    ./reboot.hard.sh "reboot" 25  
+    ./reboot.hard.sh reboot 25  
     exit 0
 fi
 
@@ -47,7 +47,7 @@ ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMine
 if [[ $ERR -gt 0 ]]; then
     log "REBOOT find critical errors in miner log"
     unmemo
-    ./reboot.hard.sh "reboot" 25
+    ./reboot.hard.sh reboot 25
     exit 0
 fi    
 
