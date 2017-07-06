@@ -24,7 +24,7 @@ recall() {
 }
 
 read_journal() {
-    journalctl -n $2 -o cat -ru $1;
+    journalctl -n $2 -o cat -eu $1;
 }
 
 read_miner() {
