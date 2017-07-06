@@ -5,11 +5,22 @@ log() {
     echo "$TS $@" | cat >> ~/.dwarfing.log
 }
 
-memo() {
-    echo "#MEMORIZED VALUES" | cat > $1
+memorize() {
+    echo "#MEMORIZED VALUES" | cat > "$1"
     for V in "${@:2}"; do
-	echo "${V}=${!V}" | cat >> $1;
+	echo "${V}=\"${!V}\"" | cat >> "$1";
     done    
+}
+
+recall() {
+    if [[ ! -f "$1" ]]; then
+	echo "#EMPTY RECALL" | cat > "$1"
+	for V in "${@:2}"; do
+	    echo "${V}=\"\"" | cat >> "$1";
+	done
+
+    fi
+    source $1
 }
 
 read_journal() {

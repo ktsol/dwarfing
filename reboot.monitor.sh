@@ -10,49 +10,49 @@ fi
 
 cd "$(dirname "$0")"
 
-MEMO_FILE="~/.dwarfing.monitor.state"
+MEMO_FILE=~/.dwarfing.monitor.state
 
 source ./tools.sh
-source $MEMO_FILE
+recall $MEMO_FILE
 
 HR_FALL="$HR_FALL"
 
-memorize() {
-    memo $MEMO_FILE "HR_FALL"
+memo() {
+    memorize $MEMO_FILE "HR_FALL"
 }
 
-unmemorize() {
+unmemo() {
     HR_FALL=0
-    memorize
+    memo
 }
 
 #Hash Rate check
 HR=`hr_lt $1`
 if [[ $HR -eq 1 ]]; then
     HR_FALL=$(($HR_FALL + 1))
-    log "HR fall to `read_rh` about $HR_FALL times"
+    log "HR fall to `read_hr` about $HR_FALL times"
 else
     HR_FALL=0
 fi
 
 if [[ $HR_FALL -gt $2 ]]; then
     log "REBOOT ->  HR droped to `read_hr` about $HR_FALL times"
-    unmemorize
+    unmemo
     ./reboot.hard.sh "reboot" 45  
     exit 0
 fi
 
 #BAD log check
-ERR=check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed"
+ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed"`
 if [[ $ERR -gt 0 ]]; then
     log "REBOOT find critical errors in miner log"
-    unmemorize
+    unmemo
     ./reboot.hard.sh "reboot" 45  
     exit 0
 fi    
 
 #MEMORIZE CURRENT STATE
-memorize
+memo
 exit 0
 
 
