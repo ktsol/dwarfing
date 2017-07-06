@@ -6,23 +6,20 @@
 
 TRIG="/tmp/hard-reboot-ready"
 
-hreboot() {
+reboot_hard() {
     sleep $1
     if [ -f "$TRIG" ]; then
 	rm -f TRIG
-	echo "Hard reboot active"
-
-	echo 1 > /proc/sys/kernel/sysrq 
+	echo "(O_O) Hard reboot activated"
+	echo 1 > /proc/sys/kernel/sysrq
         echo b > /proc/sysrq-trigger
     else
-	echo "NO reboot"
+	echo "(^_^) No need for hard reboot"
     fi
 }
 
-
 eval_or() {
     touch $TRIG
-
     eval "$1"
     S=$?
     if [ $S -eq 0 ]; then
@@ -31,4 +28,8 @@ eval_or() {
     exit $S
 }    
 
-hreboot $2 & eval_or "$1"
+reboot_hard_on_command_fail() {
+    reboot_hard $2 & eval_or "$1"
+}
+
+reboot_hard_on_command_fail $1 $2
