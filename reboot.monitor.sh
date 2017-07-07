@@ -46,11 +46,19 @@ fi
 ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed" "cannot get current temperature, error"`
 
 if [[ $ERR -gt 0 ]]; then
-    log "REBOOT find critical errors in miner log"
+    log "REBOOT find errors in miner log"
     unmemo
     ./reboot.hard.sh reboot 25
     exit 0
 fi    
+# completely bad errors - pointless to reboot
+ERR_CRIT=`check_miner_for "cannot get current temperature, error"`
+if [[ $ERR_CRIT -gt 0 ]]; then
+    log "REBOOT find critical errors in miner log (o_O)"
+    unmemo
+    ./reboot.hard.sh "exit 1" 1
+    exit 0
+fi
 
 #MEMORIZE CURRENT STATE
 memo
