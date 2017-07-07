@@ -43,7 +43,8 @@ if [[ $HR_FALL -gt $2 ]]; then
 fi
 
 #BAD log check
-ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed"`
+ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed" "cannot get current temperature, error"`
+
 if [[ $ERR -gt 0 ]]; then
     log "REBOOT find critical errors in miner log"
     unmemo
@@ -63,6 +64,8 @@ Jul 05 22:57:32 miner3 active[717]: GPU0 t=72C fan=51%, GPU1 t=70C fan=62%, GPU2
 Jul 05 15:30:15 miner3 active[3519]: GPU 3, GpuMiner kx failed 1 
 Jul 05 15:30:15 miner3 active[3519]: GPU 3 failed 
 Jul 05 15:30:15 miner3 active[3519]: GPU 3, GpuMiner cu_k1 failed 6, the launch timed out and was terminated 
+Jul 07 14:02:52 miner3 active[728]: NVML: cannot get current temperature, error 15 
+Jul 07 14:02:55 miner3 active[728]: NVML: cannot get current temperature, error 15
 Jul 05 15:30:15 miner3 active[3519]: GPU 3, GpuMiner kx failed 1 
 Jul 05 19:36:31 miner1 active[822]: GPU0 t=48C fan=61%; GPU1 t=66C fan=58% 
 Jul 05 19:36:31 miner1 active[822]: WATCHDOG: GPU 0 hangs in OpenCL call, exit 
