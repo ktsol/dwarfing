@@ -40,7 +40,7 @@ gpu_mtro() {
 
 # ARGS: gpu_id clock_offset_level2 clock_offset_level3
 gpu_gco() {
-    nvidia-settings -a "[gpu:$1]/GPUGraphicsClockOffset[2]=$3" -a "[gpu:$1]/GPUGraphicsClockOffset[3]=$3"
+    nvidia-settings -a "[gpu:$1]/GPUGraphicsClockOffset[2]=$2" -a "[gpu:$1]/GPUGraphicsClockOffset[3]=$3"
 }
 
 # ARGS: gpu_id fan_control_state
