@@ -48,13 +48,18 @@ gpu_fcs() {
     nvidia-settings -a "[gpu:$1]/GPUFanControlState=$2"
 }
 
+# Get GPU temperature
+gpu_temp() {
+    nvidia-smi -i $1 --query-gpu=temperature.gpu --format=csv,noheader
+}
+
 # ARGS: gpu_id fan_speed_percent [critical_temperature]
 # WIll set fan at 100 if temperature is critical
 gpu_tfs() {
     tl="$3"
     fan="$2"
     if [[ $tl =~ ^[0-9]+$ ]]; then
-	t=`nvidia-smi -i $1 --query-gpu=temperature.gpu --format=csv,noheader`
+	t=`gpu_temp $1`
 	if [[ $t -ge $tl ]]; then
 	    echo "GPU $1 FAN at 100% -> Temperature $t >= $tl"
 	    fan=100
