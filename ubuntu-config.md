@@ -25,11 +25,15 @@ sudo grub-install /dev/<your_device_id>
 
 # Configuration 
 
+#VIDEO
 Add user to **video** group
 
 ```
 sudo usermod -a -G video miner
 ```
+
+To work with X server should  have allowed_users=anybody in /etc/X11/Xwrapper.config
+
 
 ## Net config
 ```
