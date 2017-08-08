@@ -26,27 +26,58 @@
 # else
 #     echo "FAN night-evening"
 # fi
+#
+# echo "Run file counter $CFG_RUN"
+# if [[ $CFG_RUN -eq 0 ]]; then
+#     echo "This code will run once at start or after config was changed";
+# fi
+
 
 # ARGS: gpu_id power_mizer_mode
 gpu_pmm() {
     nvidia-settings -a "[gpu:$1]/GpuPowerMizerMode=$2";
 }
 
-# ARGS: gpu_id memory_offset_level2 memory_offset_level3
+
+# ARGS: gpu_id memory_offset_level3 [memory_offset_level2]
 gpu_mtro() {
-    # Can only assign to 2 and 3 level
-    nvidia-settings -a "[gpu:$1]/GPUMemoryTransferRateOffset[2]=$2" -a "[gpu:$1]/GPUMemoryTransferRateOffset[3]=$3";
+    Q="[gpu:$1]/GPUMemoryTransferRateOffset"
+    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K\d+(?=\.)'`
+
+    if [[ "$O3" != "$2" ]]; then
+	# Can only assign to 2 and 3 level
+	nvidia-settings -a "[gpu:$1]/GPUMemoryTransferRateOffset[3]=$2";
+	if [[ ! -z "$3" ]]; then
+	    nvidia-settings -a "[gpu:$1]/GPUMemoryTransferRateOffset[2]=$3";
+	fi
+    else
+	echo "SKIP update GPUMemoryTransferRateOffset[3] with same value $2"
+    fi
 }
 
-# ARGS: gpu_id clock_offset_level2 clock_offset_level3
+
+# ARGS: gpu_id clock_offset_level3 [clock_offset_level2]
 gpu_gco() {
-    nvidia-settings -a "[gpu:$1]/GPUGraphicsClockOffset[2]=$2" -a "[gpu:$1]/GPUGraphicsClockOffset[3]=$3"
+    Q="[gpu:$1]/GPUGraphicsClockOffset"
+    O2=`nvidia-settings -q $Q | grep -oP ']\):\s+\K\d+(?=\.)'`
+
+    if [[ "$O3" != "$2" ]]; then
+	# Can only assign to 2 and 3 level
+	nvidia-settings  -a "[gpu:$1]/GPUGraphicsClockOffset[3]=$2"
+	if [[ ! -z "$3" ]]; then
+	    nvidia-settings -a "[gpu:$1]/GPUGraphicsClockOffset[2]=$3"
+	fi	
+    else
+	echo "SKIP update GPUGraphicsClockOffset[3] with same value $2"
+    fi
 }
+
 
 # ARGS: gpu_id fan_control_state
 gpu_fcs() {
     nvidia-settings -a "[gpu:$1]/GPUFanControlState=$2"
 }
+
 
 # Get GPU temperature
 gpu_temp() {
@@ -88,6 +119,7 @@ fi
 
 
 MD5=""
+CFG_RUN=0
 while true; do
     if [[ ! -f "$1" ]]; then
 	echo "Configuration file not found $1"
@@ -97,14 +129,16 @@ while true; do
     
     MDT=`md5sum $1 | awk '{ print $1 }'`
     if [[ "$MD5" != "$MDT" ]]; then
-	MD5="$MDT"	
-	echo "RE/LOAD configuration from $1"
+	MD5="$MDT"
+	CFG_RUN=0
+	echo "RE/LOAD config. File was modified $1"
 	source "$1"
     fi
     
     if [[ $RMIN -gt 0 ]]; then
 	M=`date +%M | sed -r 's/^0//g'`
 	if [[ $((M % RMIN)) -eq 0 ]]; then
+	    CFG_RUN=$((CFG_RUN + 1))
 	    echo "AUTO RELOAD configuration from $1"
 	    source "$1"
 	fi
