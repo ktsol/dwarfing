@@ -73,6 +73,18 @@ gpu_gco() {
 }
 
 
+# Set GPU Power limit
+# ARGS: gpu_id power_limit
+gpu_pl() {
+    PL=`nvidia-smi -i $1 --format=csv,noheader --query-gpu='power.limit' | grep -oP '\K\d+(?=\.\d+\s+W.*)'`
+    if [[ "$PL" != "$2" ]]; then
+	nvidia-smi -i $1 -pl $2
+    else
+	echo "SKIP power limit update with same value $2"
+    fi
+}
+
+
 # ARGS: gpu_id fan_control_state
 gpu_fcs() {
     nvidia-settings -a "[gpu:$1]/GPUFanControlState=$2"
