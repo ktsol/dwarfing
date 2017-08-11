@@ -42,7 +42,7 @@ gpu_pmm() {
 # ARGS: gpu_id memory_offset_level3 [memory_offset_level2]
 gpu_mtro() {
     Q="[gpu:$1]/GPUMemoryTransferRateOffset"
-    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K\d+(?=\.)'`
+    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K-{0,1}\d+(?=\.)'`
 
     if [[ "$O3" != "$2" ]]; then
 	# Can only assign to 2 and 3 level
@@ -59,7 +59,7 @@ gpu_mtro() {
 # ARGS: gpu_id clock_offset_level3 [clock_offset_level2]
 gpu_gco() {
     Q="[gpu:$1]/GPUGraphicsClockOffset"
-    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K\d+(?=\.)'`
+    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K-{0,1}\d+(?=\.)'`
 
     if [[ "$O3" != "$2" ]]; then
 	# Can only assign to 2 and 3 level
