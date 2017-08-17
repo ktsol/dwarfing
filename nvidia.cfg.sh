@@ -4,11 +4,13 @@
 # nvidia-cfg.service Systemd example
 #[Unit]
 #Description=NVIDIA config service
+##BindsTo=X.service # Optional service that provide :99 display
 #[Service]
+#Environment=DISPLAY=:99
 #Type=simple
-#ExecStart=/usr/bin/xinit /path-to/dwarfing/nvidia.cfg.sh /path/to/cfg.sh [reload_each_n_minute] -- :1 -once
-#User=miner
-#Group=miner
+#ExecStart=/path-to/dwarfing/nvidia.cfg.sh /path/to/cfg.sh [reload_each_n_minute]
+#User=root
+#Group=root
 #Restart=always
 #[Install]
 #WantedBy=multi-user.target
@@ -32,69 +34,6 @@ source "$(dirname "$0")/nvidia.sh"
 # if [[ $CFG_RUN -eq 0 ]]; then
 #     echo "This code will run once at start or after config was changed";
 # fi
-
-
-# ARGS: gpu_id power_mizer_mode
-gpu_pmm() {
-    nvidia-settings -a "[gpu:$1]/GpuPowerMizerMode=$2";
-}
-
-
-# ARGS: gpu_id memory_offset_level3 [memory_offset_level2]
-gpu_mtro() {
-    Q="[gpu:$1]/GPUMemoryTransferRateOffset"
-    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K-{0,1}\d+(?=\.)'`
-
-    if [[ "$O3" != "$2" ]]; then
-	# Can only assign to 2 and 3 level
-	nvidia-settings -a "[gpu:$1]/GPUMemoryTransferRateOffset[3]=$2";
-	if [[ ! -z "$3" ]]; then
-	    nvidia-settings -a "[gpu:$1]/GPUMemoryTransferRateOffset[2]=$3";
-	fi
-    else
-	echo "SKIP update GPUMemoryTransferRateOffset[3] with same value $2"
-    fi
-}
-
-
-# ARGS: gpu_id clock_offset_level3 [clock_offset_level2]
-gpu_gco() {
-    Q="[gpu:$1]/GPUGraphicsClockOffset"
-    O3=`nvidia-settings -q $Q | grep -oP ']\):\s+\K-{0,1}\d+(?=\.)'`
-
-    if [[ "$O3" != "$2" ]]; then
-	# Can only assign to 2 and 3 level
-	nvidia-settings  -a "[gpu:$1]/GPUGraphicsClockOffset[3]=$2"
-	if [[ ! -z "$3" ]]; then
-	    nvidia-settings -a "[gpu:$1]/GPUGraphicsClockOffset[2]=$3"
-	fi	
-    else
-	echo "SKIP update GPUGraphicsClockOffset[3] with same value $2"
-    fi
-}
-
-
-# ARGS: gpu_id fan_control_state
-gpu_fcs() {
-    nvidia-settings -a "[gpu:$1]/GPUFanControlState=$2"
-}
-
-
-# ARGS: gpu_id fan_speed_percent [critical_temperature]
-# WIll set fan at 100 if temperature is critical
-gpu_tfs() {
-    tl="$3"
-    fan="$2"
-    if [[ $tl =~ ^[0-9]+$ ]]; then
-	t=`gpu_temp $1`
-	if [[ $t -ge $tl ]]; then
-	    echo "GPU $1 FAN at 100% -> Temperature $t >= $tl"
-	    fan=100
-	fi
-    fi
-    
-    nvidia-settings -a "[gpu:$1]/GPUFanControlState=1" -a "[fan:$1]/GPUTargetFanSpeed=$fan"
-}
 
 
 # ACTUAL SERVICE CODE
