@@ -14,7 +14,8 @@
 #WantedBy=multi-user.target
 
 
-# In your cfg.sh next functions will be available to you
+source "$(dirname "$0")/nvidia.sh"
+# In your cfg.sh functions from nvidia.sh  will be available to you
 # Also configuration file will be reloaded each time you modify config file
 # Configuration will be reloaded every [reload_each_n_minute] minute in hour (value from 1 to 59)
 # consider it as some kind of cron job.
@@ -73,28 +74,11 @@ gpu_gco() {
 }
 
 
-# Set GPU Power limit
-# ARGS: gpu_id power_limit
-gpu_pl() {
-    PL=`nvidia-smi -i $1 --format=csv,noheader --query-gpu='power.limit' | grep -oP '\K\d+(?=\.\d+\s+W.*)'`
-    if [[ "$PL" != "$2" ]]; then
-	nvidia-smi -i $1 -pl $2
-    else
-	echo "SKIP power limit update with same value $2"
-    fi
-}
-
-
 # ARGS: gpu_id fan_control_state
 gpu_fcs() {
     nvidia-settings -a "[gpu:$1]/GPUFanControlState=$2"
 }
 
-
-# Get GPU temperature
-gpu_temp() {
-    nvidia-smi -i $1 --query-gpu=temperature.gpu --format=csv,noheader
-}
 
 # ARGS: gpu_id fan_speed_percent [critical_temperature]
 # WIll set fan at 100 if temperature is critical
