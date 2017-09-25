@@ -43,7 +43,7 @@ check_miner_for() {
 }
 
 read_hr() {
-    read_miner 20 | grep -m 1 -oP 'Total Speed:\s+\K(\d+)(?=\.\d+\sMh.*)'
+    read_miner 20 | grep -m 1 -oP 'Total Speed:\s+\K(\d+)(?=\.\d+\s.*)'
 }
 
 #Hash rate less that provided
