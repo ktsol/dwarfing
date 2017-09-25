@@ -284,12 +284,11 @@ EOF
 
 function show_help {
     echo -e "\nUSAGE:"
-    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 818 -c 13 # voltage at 818mV underclock 13%"
-    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 10 -c 5 # downvolt 10% underclock 5%"
+    echo -e "Patch:   $0 -d /usr/src/amdgpu-pro-YOURVERSION -v 800 -c 13 # voltage at 818mV underclock 13%"
     echo -e "Restore: $0 -d /usr/src/amdgpu-pro-YOURVERSION -r"
     echo -e "\nARGUMENTS:"
     echo "    -d DIRECTORY           : Path to directory with your amdgpu driver files"
-    echo "    -v VOLTAGE or PERCENT  : Base voltage in mV as int or downvolt in percents if value from 0 to 100"
+    echo "    -v VOLTAGE             : Base voltage in mV as int"
     echo "    -c PERCENT             : Underclock value in percents"
 }
 
@@ -328,20 +327,12 @@ else
 fi
 
 if [ $RESTORE -eq 0 ]; then
-
-    USUF="mV"
-    if [ $UVOLT -gt 100 ]; then
-	if [ $UVOLT -gt 1200 ]; then warn "Undervolt value ${UVOLT}mV does not look like undervolt at all!"; fi
-	if [ $UVOLT -lt 800  ]; then warn "Are you shure that it whould work with voltage near ${UVOLT}mV ?"; fi
-	if [ $UVOLT -lt 500  ];   then  error "Definitely wrong undervolt value ${UVOLT}mV"; HELP=1; fi
-    else
-	USUF="%"
-	if [ $UVOLT -lt 0 ] || [ $UVOLT -gt 50 ];   then  error "Can not allow you set undervolt to ${UVOLT}%"; HELP=1; fi
-    fi
-	
+    if [ $UVOLT -gt 1200 ]; then warn "Undervolt value ${UVOLT}mV does not look like undervolt at all!"; fi
+    if [ $UVOLT -lt 800  ]; then warn "Are you shure that it whould work with voltage near ${UVOLT}mV ?"; fi
+    if [ $UVOLT -lt 700  ];   then  error "Definitely wrong undervolt value ${UVOLT}mV"; HELP=1; fi
     if [ $UCLOCK -lt 0 ] || [ $UCLOCK -gt 50 ]; then error "Can not allow you set underclock to ${UCLOCK}% !"; HELP=1; fi
     
-    info "Undervolt value ${UVOLT}${USUF} underclock is ${UCLOCK}%"
+    info "Undervolt value ${UVOLT}mV underclock is ${UCLOCK}%"
 else
     info "Restore configuration requested"
 fi
