@@ -43,7 +43,7 @@ if [[ $HR_FALL -gt $2 ]]; then
 fi
 
 #BAD log check
-ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed" "cannot get current temperature, error"`
+ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed" "cannot get current temperature, error" "are stopped. Restart attemp" "Thread exited with code"`
 
 if [[ $ERR -gt 0 ]]; then
     log "REBOOT find errors in miner log"
