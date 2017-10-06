@@ -25,7 +25,18 @@ sudo grub-install /dev/<your_device_id>
 
 # Configuration 
 
-#VIDEO
+##Journal persistence
+```
+mkdir /var/log/journal
+systemd-tmpfiles --create --prefix /var/log/journal
+
+#At least set Storage=auto into config
+emacs /etc/systemd/journald.conf
+
+systemctl restart systemd-journald
+```
+
+##VIDEO
 Add user to **video** group
 
 ```
