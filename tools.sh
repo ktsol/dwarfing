@@ -42,17 +42,27 @@ check_miner_for() {
     echo $R;
 }
 
+# Read hashrate from systemd "miner" service
+# Supported miners outputs:
+# - claymore (single crypto)
+# - ccminer
+# - ewbf
 read_hr() {
-    read_miner 100 | tac - | grep -m 1 -oPi '(Total Speed:\s+\K(\d+)(?=(\.\d+)*\s.*)|accepted:[^\)]+\), \K(\d+)(?=(\.\d+)*\s.*))'
+    read_miner 100 | tac - | grep -m 1 -oPi '(Total Speed:\s+|accepted:[^\)]+\), )\K(\d+)(?=(\.\d+)*\s.*)'
 }
 
-#Hash rate less that provided
+# Check if system "miner" serice hash rate less that provided
 hr_lt() {
-    hrs=`read_hr`
-    if [[ -z $hrs ]]; then
+    if [ $(systemctl is-active miner) != "active" ]; then
+	# Inactive miner
 	echo 0;
+    fi
+    
+    hrs=`read_hr`
+    if [ -z $hrs ]; then
+	echo 1;
     else
-	if [[ $hrs -lt $1 ]]; then
+	if [ $hrs -lt $1 ]; then
 	    echo 1;
 	else
 	    echo 0;

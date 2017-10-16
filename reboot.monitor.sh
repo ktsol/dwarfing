@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-#ARGS
+# ARGS
+# Monitor your systemd "miner" service and its output.
+# Reboot system on hardware errors or HR drops.
 # - HR min limit
 # - HR sequential falls before reboot
 if [[ $# -ne 2 ]]; then
@@ -42,7 +44,7 @@ if [[ $HR_FALL -gt $2 ]]; then
     exit 0
 fi
 
-#BAD log check
+#BAD log check patterns
 ERR=`check_miner_for "WATCHDOG: GPU error" "hangs in OpenCL call, exit" "GpuMiner kx failed" "cannot get current temperature, error" "are stopped. Restart attemp" "Thread exited with code"`
 
 if [[ $ERR -gt 0 ]]; then
