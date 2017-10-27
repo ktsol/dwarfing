@@ -5,21 +5,22 @@ apt-get install emacs-nox mc tmux vnstat libcurl3
 apt-get purge nano snapd snap-confine mdadm cryptsetup
 ```
 
-Configure sensors
+After uninstall cryptsetup dudes suggest to reconfigure/install grub
+
+```
+sudo update-grub
+sudo grub-install /dev/<your_device_id>
+```
+
+# Configure sensors
 ```
 apt-get install  lm-sensors
 # Now you should detect sensors
 sudo sensors-detect
 
 ```
-And just follow the prompts. Add the recommended lines to /etc/modules.
-After uninstall cryptsetup dudes suggest to reconfigure/install grub
-
-
-```
-sudo update-grub
-sudo grub-install /dev/<your_device_id>
-```
+And just follow the prompts. 
+Add the recommended lines to /etc/modules.
 
 # Build tools
 
@@ -43,8 +44,16 @@ Add user to **video** group
 sudo usermod -a -G video miner
 ```
 
-To work with X server should  have allowed_users=anybody in /etc/X11/Xwrapper.config
+To work with X server should  configure /etc/X11/Xwrapper.config with:
 
+needs_root_rights=yes
+allowed_users=anybody
+
+Plus should add user to tty group
+```
+sudo apt-get install xserver-xorg-legacy
+sudo usermod -a -G tty USER
+```
 
 ## Net config
 ```

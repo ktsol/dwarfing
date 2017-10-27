@@ -355,7 +355,7 @@ backup_src "$AMDGPUDIR" "$SRCDIR"
 info "We are ready to start"
 read -p "Continue (y/n)?" yn
 echo
-if [ ! $yn = "Y" ] && [ ! $yn = "y" ]; then
+if [ $yn != "Y" ] && [ $yn != "y" ]; then
     [ "$0" = "$BASH_SOURCE" ] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
 fi
 
