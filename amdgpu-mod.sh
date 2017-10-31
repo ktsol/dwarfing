@@ -8,14 +8,15 @@
 # but unfortunately it seems that compiling downclock ratio
 # gives much better power saving.
 #
-# Also I've tried to backbort DAG fix, but witout any success
-# https://patchwork.freedesktop.org/patch/174700/
-#
 # This tool modify amd gpu kernel module.
 # It allows you to undervolt and underclock your AMD RXxx GPUs under linux with amdgpu latest driver.
 #
+# COMPATIBILE with 17.20.* 17.30.* and 17.40.* amdgpu drivers
+# 17.40.* drivers require HWE kernel for Ubuntu 16.04
+#
 # BE CAREFULL!
-# I DO NOT REALLY UDERSTAND HOW DOES IT WORK AND WFT I'M DOING
+# I DO NOT FULLY UDERSTAND HOW DOES IT WORK AND WFT I'M DOING
+
 
 # colors
 CRED='\033[0;31m'; CYELL='\033[1;33m'; CGREE='\033[0;32m'; CBLUE='\033[0;34m'; NC='\033[0m';
@@ -138,91 +139,6 @@ EOF
 )
 
 PATCH_VEGA=$(cat <<EOF
-
-EOF
-)
-
-# This patch does not work but I just leave it here
-PATCH_DAG=$(cat <<EOF
---- .amdgpu_vm.c.orig	2017-08-04 12:59:00.000000000 +0300
-+++ .amdgpu_vm.c	2017-09-25 13:08:55.950264370 +0300
-@@ -1291,35 +1291,65 @@
- 	 */
- 
- 	/* SI and newer are optimized for 64KB */
--	uint64_t frag_flags = AMDGPU_PTE_FRAG(AMDGPU_LOG2_PAGES_PER_FRAG);
--	uint64_t frag_align = 1 << AMDGPU_LOG2_PAGES_PER_FRAG;
- 
--	uint64_t frag_start = ALIGN(start, frag_align);
--	uint64_t frag_end = end & ~(frag_align - 1);
-+
-+    // There is no vm_fragment_size in 17.30 drivers yes
-+    // People sad that vm_fragment_size = 9 is DAG fix so i will hardcode it
-+    unsigned max_frag = 9;
- 
- 	/* system pages are non continuously */
--	if (params->src || !(flags & AMDGPU_PTE_VALID) ||
--	    (frag_start >= frag_end)) {
--
-+    if (params->src || !(flags & AMDGPU_PTE_VALID)) {
- 		amdgpu_vm_update_ptes(params, start, end, dst, flags);
- 		return;
- 	}
- 
- 	/* handle the 4K area at the beginning */
--	if (start != frag_start) {
--		amdgpu_vm_update_ptes(params, start, frag_start,
--				      dst, flags);
--		dst += (frag_start - start) * AMDGPU_GPU_PAGE_SIZE;
--	}
--
--	/* handle the area in the middle */
--	amdgpu_vm_update_ptes(params, frag_start, frag_end, dst,
--			      flags | frag_flags);
--
--	/* handle the 4K area at the end */
--	if (frag_end != end) {
--		dst += (frag_end - frag_start) * AMDGPU_GPU_PAGE_SIZE;
--		amdgpu_vm_update_ptes(params, frag_end, end, dst, flags);
-+    while (start != end) {
-+        uint64_t frag_flags, frag_end;
-+        unsigned frag;
-+
-+        /* This intentionally wraps around if no bit is set */
-+        frag = min((unsigned) ffs(start) - 1,
-+                (unsigned) fls64(end - start) - 1);
-+        if (frag >= max_frag) {
-+            frag_flags = AMDGPU_PTE_FRAG(max_frag);
-+            frag_end = end & ~((1ULL << max_frag) - 1);
-+        } else {
-+            frag_flags = AMDGPU_PTE_FRAG(frag);
-+            frag_end = start + (1 << frag);
-+        }
-+
-+        amdgpu_vm_update_ptes(params, start, frag_end, dst,
-+                +flags | frag_flags);
-+        
-+        // can not do it for this method signature
-+        //if (r)
-+        //    return r; 
-+        dst += (frag_end - start) * AMDGPU_GPU_PAGE_SIZE;
-+        start = frag_end;
- 	}
- }
- 
-@@ -1398,8 +1428,12 @@
- 		/* set page commands needed */
- 		ndw += ncmds * 10;
- 
--		/* two extra commands for begin/end of fragment */
--		ndw += 2 * 10;
-+        /* extra commands for begin/end fragments */
-+        // There is no vm_fragment_size in 17.30 drivers yes
-+        // People sad that vm_fragment_size = 9 is DAG fix so i will hardcode it
-+        ndw += 2 * 10 * 9;
- 
- 		params.func = amdgpu_vm_do_set_ptes;
- 	}
 
 EOF
 )
@@ -373,7 +289,6 @@ if [ ! -f $KOFILE_PTCH ]; then
     PATCH_UVC=`produce_patch $UVOLT $UCLOCK`
     patch_restore_file "${SRCDIR}${FILE_P10}" "${AMDGPUDIR}${FILE_P10}" "$PATCH_UVC"
     patch_restore_file "${SRCDIR}${FILE_HW_SMU7}" "${AMDGPUDIR}${FILE_HW_SMU7}" "$PATCH_SMU7"
-    #patch_restore_file "${SRCDIR}${FILE_DAG}" "${AMDGPUDIR}${FILE_DAG}" "$PATCH_DAG"
 
     cd ${AMDGPUDIR}    
     ${AMDGPUDIR}/pre-build.sh "$KERNEL"
