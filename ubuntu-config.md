@@ -55,6 +55,14 @@ sudo apt-get install xserver-xorg-legacy
 sudo usermod -a -G tty USER
 ```
 
+### AMDGPU 17.40.+
+Require ```sudo apt-get install linux-generic-hwe-16.04``` whould not work without this package
+Edit /etc/default/grub as root and modify GRUB_CMDLINE_LINUX_DEFAULT in order to add "amdgpu.vm_fragment_size=9". 
+The line may look something like this after the change: GRUB_CMDLINE_LINUX_DEFAULT="quiet splash amdgpu.vm_fragment_size=9"
+Update grub and reboot as root: ```update-grub; reboot```
+
+
+
 ## Net config
 ```
 Edit your /etc/default/grub changing the line from
